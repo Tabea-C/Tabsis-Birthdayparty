@@ -273,9 +273,9 @@
 
 <div class="hero">
   <div class="lights" id="lights"></div>
-  <div class="eyebrow">Es wird gefeiert</div>
-  <h1>Tabea wird ein Jahr älter</h1>
-  <p class="sub">28. August 2026 · ab 19:00 Uhr · In Linden</p>
+  <div class="eyebrow">🎉 Wir wollen feiern 🎉</div>
+  <h1>Ich werde ein Jahr älter</h1>
+  <p class="sub">28. August 2026 · ab 19:00 Uhr · Bei mir Zuhause in Linden-Leihgestern</p>
 
   <div class="countdown" id="countdown">
     <div class="cd-box"><div class="num" id="cd-days">–</div><div class="lbl">Tage</div></div>
@@ -293,14 +293,14 @@
     <div class="card">
       <div class="facts">
         <div class="fact"><div class="lbl">Datum</div><div class="val">Freitag, 28. August 2026</div></div>
-        <div class="fact"><div class="lbl">Uhrzeit</div><div class="val">ab 19:00 Uhr</div></div>
-        <div class="fact"><div class="lbl">Ort</div><div class="val">Bei mir Zuhause in <br>Linden-Leihgestern</div></div>
+        <div class="fact"><div class="lbl">Uhrzeit</div><div class="val">ab 19:00 Uhr (Essen ca. 19:30 Uhr)</div></div>
+        <div class="fact"><div class="lbl">Ort</div><div class="val"><br>Linden-Leihgestern</div></div>
         <div class="fact"><div class="lbl">Anmeldefrist</div><div class="val">bis 24. August 2026</div></div>
       </div>
       <div class="map-frame">
         <iframe loading="lazy" src="https://www.google.com/maps?q=Kleiner+Ring+16,+35440+Linden-Leihgestern&output=embed"></iframe>
       </div>
-      <a class="maps-link" href="https://www.google.com/maps/search/?api=1&query=Kleiner+Ring+16,+35440+Linden-Leihgestern" target="_blank" rel="noopener">→ In Google Maps öffnen</a>
+      <a class="maps-link" href="https://www.google.com/maps/search/?api=1&query=35440+Linden-Leihgestern" target="_blank" rel="noopener">→ In Google Maps öffnen</a>
     </div>
   </section>
 
@@ -349,7 +349,7 @@
   <section id="anmeldung">
     <div class="kicker">Anmeldung</div>
     <h2>Bist du dabei?</h2>
-    <h3>Für jede Person ist eine separate Anmeldung notwendig</h3>
+    <h3>Partner:innen können in einem 2. Formular angemeldet werden ❤️</h3>
     <div class="card rsvp">
       <label for="r-name">Name</label>
       <input type="text" id="r-name" placeholder="Dein Name">
@@ -357,7 +357,7 @@
       <label>Essenswahl</label>
       <p style="font-size:.85rem; color:var(--cream-dim); margin:4px 0 0;">Bitte oben unter „Grillen oder Pizza?" auswählen – wird automatisch übernommen.</p>
 
-      <label for="r-song">Song-/ Interpretwunsch für die Playlist</label>
+      <label for="r-song">Songwunsch für die Playlist</label>
       <input type="text" id="r-song" placeholder="Titel &amp; Interpret (optional)">
 
       <label for="r-comment">Kommentar</label>
@@ -387,7 +387,7 @@
 </div>
 
 <footer>
-  Gebaut mit Vorfreude – und ganz ohne Drohnenkamera, versprochen 🚁🎂<br>
+  Gebaut mit Vorfreude – und ganz sicher mit KI unterstütz, versprochen 🤖😆<br>
   Bis bald, Tabea
 </footer>
 
@@ -418,25 +418,35 @@
   updateCountdown();
   setInterval(updateCountdown, 1000);
 
+  // ⚠️ Hier deine eigenen Airtable-Werte eintragen (siehe Anleitung)
+  const AIRTABLE_BASE_ID = "apppO0U3CcVmWVM2G";     // beginnt mit "app..."
+  const AIRTABLE_TABLE = "RSVPs";
+  const AIRTABLE_TOKEN = "patVfTxbY985R0yyO.8e63925c791e0bbb4f0d994bcde737a944740d95ee5f08a3e3ba7d999393d97f";          // beginnt mit "pat..."
+  const AIRTABLE_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE)}`;
+
+  async function fetchAllEntries(){
+    const res = await fetch(AIRTABLE_URL, {
+      headers: { 'Authorization': 'Bearer ' + AIRTABLE_TOKEN }
+    });
+    const data = await res.json();
+    return (data.records || []).map(r => ({
+      ts: r.createdTime,
+      name: r.fields.Name1 || '',
+      food: r.fields.Essen || '',
+      song: r.fields.Songwunsch || '',
+      comment: r.fields.Kommentar || ''
+    }));
+  }
+
   // Food voting
   let selectedFood = null;
 
   async function loadTally(){
     const tallyEl = document.getElementById('tally');
     try{
-      const listResult = await window.storage.list('rsvp:', true);
-      const keys = (listResult && listResult.keys) || [];
-      let grill = 0, pizza = 0;
-      for(const k of keys){
-        try{
-          const r = await window.storage.get(k, true);
-          if(r && r.value){
-            const data = JSON.parse(r.value);
-            if(data.food === 'Grillen') grill++;
-            if(data.food === 'Pizza') pizza++;
-          }
-        }catch(e){ /* skip unreadable entry */ }
-      }
+      const entries = await fetchAllEntries();
+      const grill = entries.filter(e => e.food === 'Grillen').length;
+      const pizza = entries.filter(e => e.food === 'Pizza').length;
       tallyEl.textContent = `Bisher: ${grill} für Grillen, ${pizza} für Pizza`;
     }catch(e){
       tallyEl.textContent = '';
@@ -445,6 +455,8 @@
   loadTally();
 
   // Admin view: open the page with ?admin=tabea to see all RSVPs
+  // Hinweis: Das ist nur eine versteckte Ansicht, kein echter Zugriffsschutz -
+  // der Airtable-Token liegt im Quellcode der Seite.
   async function maybeShowAdmin(){
     const params = new URLSearchParams(window.location.search);
     if(params.get('admin') !== 'tabea') return;
@@ -455,15 +467,7 @@
     const summaryEl = document.getElementById('admin-summary');
 
     try{
-      const listResult = await window.storage.list('rsvp:', true);
-      const keys = (listResult && listResult.keys) || [];
-      const entries = [];
-      for(const k of keys){
-        try{
-          const r = await window.storage.get(k, true);
-          if(r && r.value) entries.push(JSON.parse(r.value));
-        }catch(e){ /* skip unreadable entry */ }
-      }
+      const entries = await fetchAllEntries();
       entries.sort((a,b) => new Date(a.ts) - new Date(b.ts));
 
       const grill = entries.filter(e => e.food === 'Grillen').length;
@@ -536,16 +540,19 @@
     }
     errorEl.classList.remove('show');
 
-    const id = Date.now() + '-' + Math.random().toString(36).slice(2,8);
-    const entry = { name, food: selectedFood, song, comment, ts: new Date().toISOString() };
+    const entry = { name, food: selectedFood, song, comment };
 
     try{
-      const result = await window.storage.set('rsvp:' + id, JSON.stringify(entry), true);
-      if(!result){
-        confirmEl.textContent = 'Hm, das hat leider nicht geklappt. Bitte nochmal versuchen.';
-        confirmEl.classList.add('show');
-        return;
-      }
+      await fetch(AIRTABLE_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + AIRTABLE_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          records: [{ fields: { Name1: entry.name, Essen: entry.food, Songwunsch: entry.song, Kommentar: entry.comment } }]
+        })
+      });
       confirmEl.textContent = `Danke, ${name}! Du bist angemeldet für ${selectedFood}. Wir freuen uns auf dich am 28.08.! 🎉`;
       confirmEl.classList.add('show');
       loadTally();
