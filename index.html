@@ -354,7 +354,7 @@
       <div class="tester">
         <div class="kicker" style="margin-bottom:8px;">Geschenkideen-Prüfstelle (Beta)</div>
         <p style="font-size:.88rem; color:var(--cream-dim); margin-top:0;">Unsicher, ob deine Geschenkidee gut ist? Hier testen lassen:</p>
-        <input type="text" id="gift-input" placeholder="z. B. eine Töpferscheibe für Anfänger…">
+        <input type="text" id="gift-input" placeholder="z. B. Socken">
         <button onclick="testGift()">Idee testen</button>
         <div class="analysis" id="gift-result"></div>
       </div>
@@ -581,7 +581,7 @@
   function testGift(){
     const val = document.getElementById('gift-input').value.trim();
     const resultEl = document.getElementById('gift-result');
-    const pct = 60 + Math.floor(Math.random()*35);
+    const pct = 30 + Math.floor(Math.random()*35);
     const fn = analyses[Math.floor(Math.random()*analyses.length)];
     const ideaText = val ? `„${val}"` : 'deine Idee';
     resultEl.innerHTML = `<strong>Testergebnis für ${ideaText}:</strong><br><br>` + fn(pct);
