@@ -157,6 +157,18 @@
     padding-left:12px;
   }
 
+  .weather-live{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    margin-top:6px;
+    flex-wrap:wrap;
+  }
+  .weather-live .icon{font-size:2.6rem;}
+  .weather-live .temps{font-family:'Fraunces', serif; font-size:1.4rem;}
+  .weather-live .temps .lo{color:var(--cream-dim); font-size:1rem;}
+  .weather-live .rain{font-size:.85rem; color:var(--cream-dim);}
+
   /* ---------- Essen voting ---------- */
   .food-options{display:flex; gap:16px; margin-top:20px; flex-wrap:wrap;}
   .food-card{
@@ -275,7 +287,7 @@
   <div class="lights" id="lights"></div>
   <div class="eyebrow">🎉 Wir wollen feiern 🎉</div>
   <h1>Ich werde ein Jahr älter</h1>
-  <p class="sub">28. August 2026 · ab 19:00 Uhr · Bei mir Zuhause in Linden-Leihgestern</p>
+  <p class="sub">30. August 2026 · ab 19:00 Uhr · Bei mir Zuhause in Linden-Leihgestern</p>
 
   <div class="countdown" id="countdown">
     <div class="cd-box"><div class="num" id="cd-days">–</div><div class="lbl">Tage</div></div>
@@ -292,7 +304,7 @@
     <h2>Wann &amp; Wo</h2>
     <div class="card">
       <div class="facts">
-        <div class="fact"><div class="lbl">Datum</div><div class="val">Freitag, 28. August 2026</div></div>
+        <div class="fact"><div class="lbl">Datum</div><div class="val">Sonntag, 30. August 2026</div></div>
         <div class="fact"><div class="lbl">Uhrzeit</div><div class="val">ab 19:00 Uhr (Essen ca. 19:30 Uhr)</div></div>
         <div class="fact"><div class="lbl">Ort</div><div class="val"><br>Linden-Leihgestern</div></div>
         <div class="fact"><div class="lbl">Anmeldefrist</div><div class="val">bis 24. August 2026</div></div>
@@ -308,8 +320,11 @@
     <div class="kicker">Ausblick</div>
     <h2>Wie wird das Wetter?</h2>
     <div class="card">
-      <p>Ende August liegen die Tageshöchstwerte in der Region Gießen/Linden im Schnitt zwischen <strong>21–23 °C</strong>, mit einer realistischen Chance auf Sonne, aber auch auf Wolken – etwa 44 % der Zeit ist es bewölkt. Für alle Fälle: Eine Jacke für den Abend einpacken schadet nicht, ein Sonnenplatz im Garten ist aber auch drin.</p>
-      <p class="weather-note">Hinweis: Das ist der langjährige Durchschnitt für diese Jahreszeit – eine echte Vorhersage gibt es erst ca. 10 Tage vorher. Diese Zeile wird kurz vor der Feier aktualisiert.</p>
+      <div class="weather-live" id="weather-live">
+        <span class="icon">⏳</span>
+        <div>Lade Wetterdaten …</div>
+      </div>
+      <p class="weather-note" id="weather-note">Hinweis: Das ist der langjährige Durchschnitt für diese Jahreszeit – eine echte Vorhersage gibt es erst ca. 10–15 Tage vorher. Diese Seite prüft das automatisch für dich.</p>
     </div>
   </section>
 
@@ -401,7 +416,7 @@
   }
 
   // Countdown
-  const target = new Date('2026-08-28T19:00:00+02:00').getTime();
+  const target = new Date('2026-08-30T19:00:00+02:00').getTime();
   function updateCountdown(){
     const now = Date.now();
     let diff = target - now;
@@ -417,6 +432,53 @@
   }
   updateCountdown();
   setInterval(updateCountdown, 1000);
+
+  // Wetter: echte Vorhersage per Open-Meteo (kein API-Key nötig), sonst Klima-Durchschnitt als Fallback
+  const PARTY_DATE = '2026-08-30';
+  const LAT = 50.5254;
+  const LON = 8.684;
+  const weatherIcons = {
+    0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',
+    51:'🌦️',53:'🌦️',55:'🌦️',61:'🌧️',63:'🌧️',65:'🌧️',
+    71:'🌨️',73:'🌨️',75:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',
+    95:'⛈️',96:'⛈️',99:'⛈️'
+  };
+
+  async function loadWeather(){
+    const liveEl = document.getElementById('weather-live');
+    const noteEl = document.getElementById('weather-note');
+    try{
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=Europe%2FBerlin&start_date=${PARTY_DATE}&end_date=${PARTY_DATE}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if(data.daily && data.daily.time && data.daily.time[0] === PARTY_DATE){
+        const max = Math.round(data.daily.temperature_2m_max[0]);
+        const min = Math.round(data.daily.temperature_2m_min[0]);
+        const rain = data.daily.precipitation_probability_max[0];
+        const code = data.daily.weathercode[0];
+        const icon = weatherIcons[code] || '🌡️';
+
+        liveEl.innerHTML = `
+          <span class="icon">${icon}</span>
+          <div>
+            <div class="temps">${max}° <span class="lo">/ ${min}°</span></div>
+            <div class="rain">Regenwahrscheinlichkeit: ${rain}%</div>
+          </div>
+        `;
+        noteEl.textContent = 'Das ist die aktuelle Vorhersage für den 30.08. – wird bei jedem Seitenaufruf neu abgerufen.';
+        return;
+      }
+      throw new Error('Datum außerhalb des Vorhersagezeitraums');
+    }catch(e){
+      liveEl.innerHTML = `
+        <span class="icon">📊</span>
+        <div>Ende August meist <strong>21–23 °C</strong>, teils bewölkt (ca. 44 % der Zeit)</div>
+      `;
+      noteEl.textContent = 'Das ist der langjährige Durchschnitt für diese Jahreszeit – eine echte Vorhersage gibt es erst ca. 10–15 Tage vorher. Einfach kurz vorher nochmal hier vorbeischauen.';
+    }
+  }
+  loadWeather();
 
   // ⚠️ Hier deine eigenen Airtable-Werte eintragen (siehe Anleitung)
   const AIRTABLE_BASE_ID = "apppO0U3CcVmWVM2G";     // beginnt mit "app..."
@@ -553,7 +615,7 @@
           records: [{ fields: { Name1: entry.name, Essen: entry.food, Songwunsch: entry.song, Kommentar: entry.comment } }]
         })
       });
-      confirmEl.textContent = `Danke, ${name}! Du hast für ${selectedFood} gevoted. Wir freuen uns auf dich am 28.08.! 🎉`;
+      confirmEl.textContent = `Danke, ${name}! Du hast für ${selectedFood} gevoted. Wir freuen uns auf dich am 30.08.! 🎉`;
       confirmEl.classList.add('show');
       loadTally();
     }catch(e){
